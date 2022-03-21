@@ -12,15 +12,15 @@ npm install
 
 To run the server:
 ```
-node module-server.js
+node modbus-server.js
 ```
 
 To run the litsener:
 ```
-node module-litsener.js
+node modbus-litsener.js
 ```
 
 To run the writer:
 ```
-node module-writer.js
+node modbus-writer.js
 ```
