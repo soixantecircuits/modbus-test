@@ -1,59 +1,67 @@
+require('dotenv').config()
+
 //create the register
 let register = Array.from({
-	length: 33,
-	0: 0,
-	1: 1,
-	2: 2,
-	3: 3, 
-	4: 4,
-	7: 7,
-	8: 8,
-	9: 9,
-	10: 10,
-	20: 20,
-	21: 21,
-	22: 22,
-	23: 23,
-	24: 24,
-	25: 25,
-	28: 28,
-	29: 29,
-	30: 30
-})
+		length: 33,
+		//general
+		0: 0,
+		//convoyeur 1
+		1: 0,		// 0, 1, 2, 3
+		2: 0, 
+		3: 10,	// 1, 2, 3
+		4: 0,		// 0 to 100
+		//convoyeur 2
+		7: 0,		// 0, 1, 2, 3
+		8: 8,
+		9: 1,		// 1, 2, 3
+		10: 10,	// 0 to 100
+		//general
+		20: 20,
+		21: 21,
+		22: 22,
+		//convoyeur 1
+		23: 23,
+		24: 24,
+		25: 25,
+		//convoyeur 2
+		28: 28,
+		29: 29,
+		30: 30
+	})
 
 // create an empty modbus client
-var ModbusRTU = require("modbus-serial");
-var vector = {
+const ModbusRTU = require("modbus-serial")
+const vector = {
 	getInputRegister: function (addr, unitID) {
 		// Synchronous handling
-		return addr;
+		return addr
 	},
 	getHoldingRegister: function (addr, unitID, callback) {
 		// Asynchronous handling (with callback)
 		setTimeout(function () {
 			// callback = function(err, value)
-			callback(null, register[addr]);
-		}, 10);
+			callback(null, register[addr])
+		}, 10)
 	},
 	getCoil: function (addr, unitID) {
 		// Asynchronous handling (with Promises, async/await supported)
 		return new Promise(function (resolve) {
 			setTimeout(function () {
-				resolve((addr % 2) === 0);
-			}, 10);
-		});
+				resolve((addr % 2) === 0)
+			}, 10)
+		})
 	},
 	setRegister: function (addr, value, unitID) {
 		// Asynchronous handling supported also here
-		console.log("set register", addr, value, unitID);
-		register[addr] = value;
-		return;
+		console.log("set register", addr, value, unitID)
+		register[addr] = value
+		return
 	},
 	setCoil: function (addr, value, unitID) {
 		// Asynchronous handling supported also here
-		callback(null, addr + 2000);
-		console.log("set coil", addr, value, unitID);
-		return;
+		callback(null, addr + 2000)
+		console.log("set coil", addr, value, unitID)
+		return
 	},
 	readDeviceIdentification: function (addr) {
 		return {
@@ -63,15 +71,56 @@ var vector = {
 			0x05: "MyModelName",
 			0x97: "MyExtendedObject1",
 			0xAB: "MyExtendedObject2"
-		};
+		}
 	}
-};
+}
 
 // set the server to answer for modbus requests
-console.log("ModbusTCP listening on modbus://0.0.0.0:8502");
-var serverTCP = new ModbusRTU.ServerTCP(vector, { host: "0.0.0.0", port: 8502, debug: true, unitID: 1 });
+console.log("ModbusTCP listening on modbus://0.0.0.0:8502")
+const serverTCP = new ModbusRTU.ServerTCP(vector, { host: "0.0.0.0", port: 8502, debug: true, unitID: 1 })
+
+// connect to Ably
+const Ably = require('ably')
+const ably = new Ably.Realtime(process.env.ABLY_KEY)
+const channel = ably.channels.get('modBus')
+
+channel.subscribe('run', (message) => {
+	console.log('run', message.data)
+	if(message.data.convoyeur_id === 1) {
+		register[1] = message.data.status
+	} else if (message.data.convoyeur_id === 2) {
+		register[7] = message.data.status
+	}
+})
+
+channel.subscribe('position', (message) => {
+	console.log('position', message.data)
+	if(message.data.convoyeur_id === 1) {
+		register[2] = message.data.position
+	} else if (message.data.convoyeur_id === 2) {
+		register[8] = message.data.position
+	}
+})
+
+channel.subscribe('post_id', (message) => {
+	console.log('post_id', message.data)
+	if(message.data.convoyeur_id === 1) {
+		register[3] = message.data.post_id
+	} else if (message.data.convoyeur_id === 2) {
+		register[9] = message.data.post_id
+	}
+})
+channel.subscribe('speed', (message) => {
+	console.log('speed', message.data)
+
+	if(message.data.convoyeur_id === 1) {
+		register[4] = message.data.speed
+	} else if (message.data.convoyeur_id === 2) {
+		register[10] = message.data.speed
+	}
+})
 
 serverTCP.on("socketError", function (err) {
 	// Handle socket error if needed, can be ignored
-	console.error(err);
-});
+	console.error(err)
+})
