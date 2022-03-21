@@ -1,9 +1,25 @@
 //create the register
-let register = [
-	0, 1, 2, 3, null, null, 6, 7, 8, 9, 10, null, null,
-	null, null, null, null, null, null, null,
-	20, 21, 22, 23, 24, 25, null, null, 28, 29, 30, null, null
-]
+let register = Array.from({
+	length: 33,
+	0: 0,
+	1: 1,
+	2: 2,
+	3: 3, 
+	4: 4,
+	7: 7,
+	8: 8,
+	9: 9,
+	10: 10,
+	20: 20,
+	21: 21,
+	22: 22,
+	23: 23,
+	24: 24,
+	25: 25,
+	28: 28,
+	29: 29,
+	30: 30
+})
 
 // create an empty modbus client
 var ModbusRTU = require("modbus-serial");
