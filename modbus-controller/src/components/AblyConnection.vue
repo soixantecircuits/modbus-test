@@ -1,6 +1,6 @@
 <script setup>
 import Ably from 'ably'
-import { ref } from '../../node_modules/vue'
+import { ref } from 'vue'
 
 const ably = new Ably.Realtime(import.meta.env.VITE_ABLY_KEY);
 const channel = ably.channels.get('modBus');
