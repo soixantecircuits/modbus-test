@@ -1,5 +1,5 @@
 <script setup>
-import Ably from "ably"
+import Ably from 'ably'
 import { ref } from '../../node_modules/vue'
 
 const ably = new Ably.Realtime(import.meta.env.VITE_ABLY_KEY);
