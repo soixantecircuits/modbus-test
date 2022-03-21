@@ -21,16 +21,16 @@ npm install
 
 First you need to run  the server in `modbus-server/`:
 ```
-node modbus-server.js
+node index.js
 ```
 
 If you want to follow the register update you have to run the litsener in `modbus-listener/`:
 ```
-node modbus-litsener.js
+node index.js
 ```
 You can update the register once with the writer in `modbus-writer/`:
 ```
-node modbus-writer.js
+node index.js
 ```
 Or you can use the controller to update the register with an interface in `modbu-controller/`:
 ```

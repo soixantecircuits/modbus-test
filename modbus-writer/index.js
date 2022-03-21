@@ -1,8 +1,12 @@
+require('dotenv').config()
+
 // create an empty modbus client
 var ModbusRTU = require("modbus-serial");
 var client = new ModbusRTU();
+client.setID(1);
+let i = 0;
 
-client.connectTCP("127.0.0.1", { port: 8502 })
+client.connectTCP(process.env.ADDRESS, { port: process.env.PORT })
 	.then(write)
 	.then(function () {
 		console.log("Connected");
@@ -12,11 +16,10 @@ client.connectTCP("127.0.0.1", { port: 8502 })
 	});
 
 function write() {
-	client.setID(1);
-
-	client.writeRegisters(1, [10, 9, 8, -20 + 65535, -10 + 65535])
+	
+	client.writeRegisters(0, [i++])
 		.then(function (d) {
-			console.log("Write 10, 9, 8, -20, -10 to registers 1 to 5", d);
+			console.log("Add one  to registers 0 ", d);
 		})
 		.catch(function (e) {
 			console.log(e.message);
@@ -35,3 +38,7 @@ function read() {
 		console.log('2AC --> Client', data.data);
 	});
 }
+
+setInterval(function() {
+	write()
+}, 1000);

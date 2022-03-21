@@ -8,11 +8,11 @@ let register = Array.from({
 		//convoyeur 1
 		1: 0,		// 0, 1, 2, 3
 		2: 0, 
-		3: 10,	// 1, 2, 3
+		3: 0,	// 1, 2, 3
 		4: 0,		// 0 to 100
 		//convoyeur 2
 		7: 0,		// 0, 1, 2, 3
-		8: 8,
+		8: 0,
 		9: 1,		// 1, 2, 3
 		10: 10,	// 0 to 100
 		//general
@@ -76,12 +76,15 @@ const vector = {
 }
 
 // set the server to answer for modbus requests
-console.log("ModbusTCP listening on modbus://0.0.0.0:8502")
-const serverTCP = new ModbusRTU.ServerTCP(vector, { host: "0.0.0.0", port: 8502, debug: true, unitID: 1 })
+console.log(`ModbusTCP listening on modbus://${process.env.HOST}:${process.env.PORT}` )
+const serverTCP = new ModbusRTU.ServerTCP(vector, { host: process.env.HOST, port: process.env.PORT, debug: true, unitID: 1 })
 
 // connect to Ably
 const Ably = require('ably')
 const ably = new Ably.Realtime(process.env.ABLY_KEY)
+ably.connection.on('connected', () => {
+  console.log('Connected to Ably!');
+});
 const channel = ably.channels.get('modBus')
 
 channel.subscribe('run', (message) => {
