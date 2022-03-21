@@ -1,6 +1,15 @@
 # modbus-test
 A modbus test
 
+
+## Project connections
+
+```mermaid
+graph TD
+    A[Controller] -->|Ably| C[ModBus Server]
+    B[ModBus Writer] -->|Modbus| C[ModBus Server]
+    C -->|Modbus| D[Modbus Listener]
+```
 ### Project setup
 
 On each directory: 
@@ -10,17 +19,20 @@ npm install
 
 ### Run the code
 
-To run the server:
+First you need to run  the server in `modbus-server/`:
 ```
-node module-server.js
-```
-
-To run the litsener:
-```
-node module-litsener.js
+node modbus-server.js
 ```
 
-To run the writer:
+If you want to follow the register update you have to run the litsener in `modbus-listener/`:
 ```
-node module-writer.js
+node modbus-litsener.js
+```
+You can update the register once with the writer in `modbus-writer/`:
+```
+node modbus-writer.js
+```
+Or you can use the controller to update the register with an interface in `modbu-controller/`:
+```
+npm run dev
 ```
