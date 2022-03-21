@@ -5,16 +5,17 @@ import { ref } from 'vue'
 const ably = new Ably.Realtime(import.meta.env.VITE_ABLY_KEY);
 const channel = ably.channels.get('modBus');
 const convoyeur_id = ref(1);
-const position = ref(0);
+const position = ref('0');
+const speed = ref('0');
 
 const runPolo = (status) => {
   console.log('run',status)
   channel.publish('run', { convoyeur_id: convoyeur_id.value, status: status })
 }
 
-const stopPosition = (stopPosition) => {
-  console.log('position', stopPosition)
-  channel.publish('position', { convoyeur_id: convoyeur_id.value, position: parseInt(stopPosition) })
+const stopPosition = () => {
+  console.log('position', position.value)
+  channel.publish('position', { convoyeur_id: convoyeur_id.value, position: parseInt(position.value) })
 }
 
 const postId = (postId) => {
@@ -22,9 +23,9 @@ const postId = (postId) => {
   channel.publish('post_id', { convoyeur_id: convoyeur_id.value, post_id: postId })
 }
 
-const speed = (speed) => {
-  console.log('speed',speed)
-  channel.publish('speed', { convoyeur_id: convoyeur_id.value, speed: speed })
+const motorSpeed = () => {
+  console.log('speed', speed.value)
+  channel.publish('speed', { convoyeur_id: convoyeur_id.value, speed: parseInt(speed.value) })
 }
 
 </script>
@@ -54,14 +55,13 @@ const speed = (speed) => {
     <div>
       <h2>Choix position</h2>
       <div><input v-model="position" /></div>
-      <button v-on:click="stopPosition(position)">Valider</button>
+      <button v-on:click="stopPosition">Valider</button>
     </div>
     <div>
       <h2>Speed</h2>
-      <button v-on:click="speed(0)">0%</button>
-      <button v-on:click="speed(25)">25%</button>
-      <button v-on:click="speed(50)">50%</button>
-      <button v-on:click="speed(100)">100%</button>
+       <div><input v-model="speed"  type="range" min="0" max="100" step="10"></div>
+       <p>{{speed}}%</p>
+      <button v-on:click="motorSpeed">Valider</button>
     </div>
   </div>
 </template>
