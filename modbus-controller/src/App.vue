@@ -1,5 +1,5 @@
 <script setup>
-import AblyConnection from './components/AblyConnection.vue'
+import AblyConnection from '@/components/AblyConnection.vue'
 </script>
 
 <template> 
