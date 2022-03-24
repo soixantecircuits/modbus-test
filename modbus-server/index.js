@@ -1,16 +1,17 @@
 require('dotenv').config()
 
+const controllerState = { use: false, tablette_id: 0, product_id: 0}
 //create the register
 let register = Array.from({
 		length: 33,
 		//general
 		0: 0,
-		//convoyeur 1
+		//conveyor 1
 		1: 0,		// 0, 1, 2, 3
 		2: 0, 
 		3: 1,	// 1, 2, 3
 		4: 0,		// 0 to 100
-		//convoyeur 2
+		//conveyor 2
 		7: 0,		// 0, 1, 2, 3
 		8: 0,
 		9: 1,		// 1, 2, 3
@@ -19,11 +20,11 @@ let register = Array.from({
 		20: 0,
 		21: 0,
 		22: 0,
-		//convoyeur 1
+		//conveyor 1
 		23: 0,
 		24: 0,
 		25: 0,
-		//convoyeur 2
+		//conveyor 2
 		28: 0,
 		29: 0,
 		30: 0
@@ -85,9 +86,10 @@ const ably = new Ably.Realtime(process.env.ABLY_KEY)
 ably.connection.on('connected', () => {
   console.log('Connected to Ably!');
 });
-const channel = ably.channels.get('modBus')
 
-channel.subscribe('run', (message) => {
+// ably call from modbus controller
+const controller_channel = ably.channels.get('modBus')
+controller_channel.subscribe('run', (message) => {
 	console.log('run', message.data)
 	if(message.data.convoyeur_id === 1) {
 		register[1] = message.data.status
@@ -96,7 +98,7 @@ channel.subscribe('run', (message) => {
 	}
 })
 
-channel.subscribe('position', (message) => {
+controller_channel.subscribe('position', (message) => {
 	console.log('position', message.data)
 	if(message.data.convoyeur_id === 1) {
 		register[2] = message.data.position
@@ -105,7 +107,7 @@ channel.subscribe('position', (message) => {
 	}
 })
 
-channel.subscribe('post_id', (message) => {
+controller_channel.subscribe('post_id', (message) => {
 	console.log('post_id', message.data)
 	if(message.data.convoyeur_id === 1) {
 		register[3] = message.data.post_id
@@ -113,13 +115,51 @@ channel.subscribe('post_id', (message) => {
 		register[9] = message.data.post_id
 	}
 })
-channel.subscribe('speed', (message) => {
+controller_channel.subscribe('speed', (message) => {
 	console.log('speed', message.data)
 
 	if(message.data.convoyeur_id === 1) {
 		register[4] = message.data.speed
 	} else if (message.data.convoyeur_id === 2) {
 		register[10] = message.data.speed
+	}
+})
+
+// ably call from app
+const app_channel = ably.channels.get('flying-polo');
+
+app_channel.subscribe('polo-capture', (message) => {
+	console.log('polo-capture', message.data.tablette_id)
+  if (controllerState.use === false) {
+    controllerState.tablette_id = message.data.tablette_id
+    controllerState.use = true
+		app_channel.publish('access-granted', {tablette_id: message.data.tablette_id })
+  }
+})
+
+app_channel.subscribe('polo-free', (message) => {
+  if(controllerState.use === true && controllerState.tablette_id === message.data.tablette_id) {
+    tablette_id = 0
+    controllerState.use = false
+    app_channel.publish('polo-idle', null)
+    console.log('polo_free')
+  }
+})
+
+app_channel.subscribe('ask-state', (message) => {
+  console.log('ask-state')
+  app_channel.publish('state', { tablette_id: message.data.tablette_id, state: controllerState})
+})
+
+app_channel.subscribe('ask-polo', (message) => {
+  console.log('ask-polo', message.data)
+	if(controllerState.use === true && controllerState.tablette_id === message.data.tablette_id) {
+		app_channel.publish('polo-start-rotate', { tablette_id: message.data.tablette_id, product_id: message.data.product_id } )
+		controllerState.product_id = message.data.product_id
+		setTimeout(() => {
+			app_channel.publish('polo-stop-rotate', {tablette_id: message.data.tablette_id, product_id: message.data.product_id})
+			controllerState.product_id = 0
+		}, 5000)
 	}
 })
 
