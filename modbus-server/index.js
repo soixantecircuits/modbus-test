@@ -1,6 +1,5 @@
 require('dotenv').config()
 const xstate = require('xstate')
-const controllerState = { use: false, tablette_id: 0, product_id: 0}
 //create the register
 let register = Array.from({
 		length: 33,
@@ -149,7 +148,7 @@ const capturedState = {
   }
 }
 
-const controllerState2 = xstate.createMachine({
+const controllerState = xstate.createMachine({
 	id: 'controller',
 	initial: 'waitCapture',
 	context: {
@@ -204,7 +203,7 @@ const controllerState2 = xstate.createMachine({
 })
 
 const app_channel = ably.channels.get('flying-polo')
-const service = xstate.interpret(controllerState2).start()
+const service = xstate.interpret(controllerState).start()
 
 app_channel.subscribe('polo-capture', (message) => {
 	console.log('polo-capture', message.data.tablette_id)
