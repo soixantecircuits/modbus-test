@@ -2,6 +2,7 @@
   "dependencies": {
     "ably": "^1.2.17",
     "dotenv": "^16.0.0",
-    "modbus-serial": "^8.0.5"
+    "modbus-serial": "^8.0.5",
+    "xstate": "^4.30.6"
   }
 }

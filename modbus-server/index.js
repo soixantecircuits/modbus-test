@@ -1,5 +1,5 @@
 require('dotenv').config()
-
+const xstate = require('xstate')
 const controllerState = { use: false, tablette_id: 0, product_id: 0}
 //create the register
 let register = Array.from({
@@ -84,8 +84,8 @@ const serverTCP = new ModbusRTU.ServerTCP(vector, { host: process.env.HOST, port
 const Ably = require('ably')
 const ably = new Ably.Realtime(process.env.ABLY_KEY)
 ably.connection.on('connected', () => {
-  console.log('Connected to Ably!');
-});
+  console.log('Connected to Ably!')
+})
 
 // ably call from modbus controller
 const controller_channel = ably.channels.get('modBus')
@@ -125,42 +125,106 @@ controller_channel.subscribe('speed', (message) => {
 	}
 })
 
-// ably call from app
-const app_channel = ably.channels.get('flying-polo');
+const capturedState = {
+  initial: 'waitingPolo',
+  states: {
+    waitingPolo: {
+      on: {
+        ASK_POLO: { 
+					target: 'displayPolo',
+					actions: ['capturePolo'],
+					cond: (context, event) => context.tablette_id === event.tablette_id
+				}
+      }
+    },
+    displayPolo: {
+				entry: ['startPoloRotate', () => console.log('entry')],
+      on: {
+        POLO_STOP: {
+					target: 'waitingPolo',
+					actions: ['freePolo']
+				}
+      }
+    }
+  }
+}
+
+const controllerState2 = xstate.createMachine({
+	id: 'controller',
+	initial: 'waitCapture',
+	context: {
+		tablette_id: 0,
+		product_id: 0
+	},
+	states: {
+		waitCapture: {
+			on: {
+				CAPTURE: {
+					target: 'captured',
+					actions: ['captureTablette']
+				}
+			}
+		},
+		captured: {
+			on: {
+				FREE: {
+					target: 'waitCapture',
+					actions: ['freeTablette']
+				}
+			},
+			...capturedState
+		}
+	}
+},
+{
+	actions: {
+		captureTablette: (context, event) => {
+			context.tablette_id = event.tablette_id
+			app_channel.publish('access-granted', { tablette_id: context.tablette_id })
+		},
+		freeTablette: (context) => {
+			context.tablette_id = 0
+		},
+		capturePolo: (context, event) => {
+			context.product_id = event.product_id
+		},
+		freePolo: (context) => {
+			context.product_id = 0
+		},
+		startPoloRotate: (context) => {
+			app_channel.publish('polo-start-rotate', { tablette_id: context.tablette_id, product_id: context.product_id })
+			console.log('start-rotate')
+			setTimeout(() => {
+				app_channel.publish('polo-stop-rotate', { tablette_id: context.tablette_id, product_id: context.product_id })
+				service.send({ type: 'POLO_STOP' })
+				console.log('polo_stop')
+			}, 5000)
+		}
+	}
+})
+
+const app_channel = ably.channels.get('flying-polo')
+const service = xstate.interpret(controllerState2).start()
 
 app_channel.subscribe('polo-capture', (message) => {
 	console.log('polo-capture', message.data.tablette_id)
-  if (controllerState.use === false) {
-    controllerState.tablette_id = message.data.tablette_id
-    controllerState.use = true
-		app_channel.publish('access-granted', {tablette_id: message.data.tablette_id })
-  }
-})
+	service.send({ type: 'CAPTURE', tablette_id: message.data.tablette_id })
+}) 
 
 app_channel.subscribe('polo-free', (message) => {
-  if(controllerState.use === true && controllerState.tablette_id === message.data.tablette_id) {
-    tablette_id = 0
-    controllerState.use = false
-    app_channel.publish('polo-idle', null)
-    console.log('polo_free')
-  }
+  console.log('polo_free')
+	service.send({ type: 'FREE' })
 })
 
 app_channel.subscribe('ask-state', (message) => {
   console.log('ask-state')
-  app_channel.publish('state', { tablette_id: message.data.tablette_id, state: controllerState})
+	app_channel.publish('state', { tablette_id: message.data.tablette_id, state: { context: service.state.context, stateValue: service.state.value}})
+	console.log({ context: service.state.context, stateValue: service.state.value})
 })
 
 app_channel.subscribe('ask-polo', (message) => {
   console.log('ask-polo', message.data)
-	if(controllerState.use === true && controllerState.tablette_id === message.data.tablette_id) {
-		app_channel.publish('polo-start-rotate', { tablette_id: message.data.tablette_id, product_id: message.data.product_id } )
-		controllerState.product_id = message.data.product_id
-		setTimeout(() => {
-			app_channel.publish('polo-stop-rotate', {tablette_id: message.data.tablette_id, product_id: message.data.product_id})
-			controllerState.product_id = 0
-		}, 5000)
-	}
+	service.send({ type: 'ASK_POLO', tablette_id: message.data.tablette_id, product_id: message.data.product_id})
 })
 
 serverTCP.on("socketError", function (err) {
