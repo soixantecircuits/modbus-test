@@ -1,4 +1,7 @@
+const inspect = require('@xstate/inspect/lib/server').inspect
+const WebSocket = require('ws');
 require('dotenv').config()
+
 const xstate = require('xstate')
 //create the register
 let register = Array.from({
@@ -148,6 +151,12 @@ const capturedState = {
   }
 }
 
+inspect({
+  server: new WebSocket.Server({
+    port: process.env.XSTATE_SERVEUR_PORT
+  })
+});
+
 const controllerState = xstate.createMachine({
 	id: 'controller',
 	initial: 'waitCapture',
@@ -203,7 +212,7 @@ const controllerState = xstate.createMachine({
 })
 
 const app_channel = ably.channels.get('flying-polo')
-const service = xstate.interpret(controllerState).start()
+const service = xstate.interpret(controllerState, { devTools: true }).onTransition((s) => console.log('transition', s.value)).start()
 
 app_channel.subscribe('polo-capture', (message) => {
 	console.log('polo-capture', message.data.tablette_id)
