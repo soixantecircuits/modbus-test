@@ -7,6 +7,7 @@ const channel = ably.channels.get('modBus');
 const convoyeur_id = ref(1);
 const position = ref('0');
 const speed = ref('0');
+const post_id = ref(0)
 
 const runPolo = (status) => {
   console.log('run',status)
@@ -19,6 +20,7 @@ const stopPosition = () => {
 }
 
 const postId = (postId) => {
+  post_id.value = postId
   console.log('postId', postId)
   channel.publish('post_id', { convoyeur_id: convoyeur_id.value, post_id: postId })
 }
@@ -28,6 +30,14 @@ const motorSpeed = () => {
   channel.publish('speed', { convoyeur_id: convoyeur_id.value, speed: parseInt(speed.value) })
 }
 
+const askPosition = () => {
+  channel.publish('askPosition', { 
+    convoyeur_id: convoyeur_id.value, 
+    post_id: post_id.value, 
+    position: parseInt(position.value), 
+    speed: parseInt(speed.value)
+  })
+}
 </script>
 
 <template> 
@@ -50,7 +60,7 @@ const motorSpeed = () => {
       <button v-on:click="runPolo(1)">Marche Sens 1</button>
       <button v-on:click="runPolo(2)">Marche Sens 2</button>
       <button v-on:click="runPolo(0)">Arret</button>
-      <button v-on:click="runPolo(3)">Demande de positionnement sur une case</button>
+      <button v-on:click="runPolo(3)">Default</button>
     </div>
     <div>
       <h2>Choix position</h2>
@@ -62,6 +72,11 @@ const motorSpeed = () => {
        <div><input v-model="speed"  type="range" min="0" max="100" step="10"></div>
        <p>{{speed}}%</p>
       <button v-on:click="motorSpeed">Valider</button>
+    </div>
+    <div>
+      <h2>Move to</h2>
+      <p>Convoyeur: {{ convoyeur_id }}, post: {{post_id}}, position: {{ position }}, speed: {{ speed }} </p>
+      <button v-on:click="askPosition()">Ask position</button>
     </div>
   </div>
 </template>
